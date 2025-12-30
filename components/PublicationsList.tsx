@@ -5,9 +5,9 @@ import { transformScienceToContent } from '../services/geminiService';
 import { ScientificPublication, PubMedArticle } from '../types';
 import { 
     Search, ExternalLink, FileText, Calendar, Users, 
-    Sparkles, Video, Instagram, Zap, Copy, 
-    CheckCircle2, X, ChevronRight, BookOpen, Quote, GraduationCap, Lock, Unlock,
-    ArrowLeft, SplitSquareHorizontal, PanelRightClose, PanelRightOpen
+    Sparkles, Video, Instagram, Copy, 
+    Check, X, BookOpen, GraduationCap, Lock,
+    ArrowLeft
 } from 'lucide-react';
 
 interface PublicationsListProps {
@@ -349,7 +349,7 @@ const PublicationsList: React.FC<PublicationsListProps> = ({ onUseArticle }) => 
                                 <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
                                     <Calendar className="w-3 h-3" /> {pub.year}
                                 </span>
-                                {pub.access_type === 'Restricted' && (
+                                {pub.access_type === 'Subscription' && (
                                     <span className="ml-auto text-[10px] font-bold text-amber-500 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
                                         <Lock className="w-3 h-3" /> Restrito
                                     </span>
