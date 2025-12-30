@@ -412,14 +412,30 @@ export interface RTSHistoryEntry {
   metrics: RTSMetrics;
 }
 
-// --- SCIENTIFIC PUBLICATIONS (STATIC) ---
+// --- SCIENTIFIC PUBLICATIONS (RICH DATA) ---
+
+export interface PublicationSection {
+    header: string;
+    body: string;
+}
 
 export interface ScientificPublication {
-  id: number;
-  titulo: string;
-  autores: string;
+  external_id: number;
+  title: string;
+  authors_raw: string;
   journal: string;
-  ano: string;
-  pmid: string;
-  link: string;
+  year: number;
+  identifiers: {
+      pmid?: string;
+      pmcid?: string;
+  };
+  urls: {
+      pubmed?: string;
+  };
+  access_type?: string;
+  category?: string;
+  content: {
+      full_raw?: string;
+      sections?: PublicationSection[];
+  };
 }

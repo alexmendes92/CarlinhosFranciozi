@@ -5,17 +5,16 @@ import {
   PlusSquare,
   History,
   Activity,
-  User,
   CheckCircle2,
-  BookOpen,
   Flame,
   Video,
+  BookOpen,
   Route,
   PieChart,
   Globe,
   QrCode,
-  GraduationCap,
-  MessageCircle
+  MessageCircle,
+  Calculator
 } from 'lucide-react';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -43,11 +42,12 @@ import VideoWizard from './components/VideoWizard';
 import ClinicalSuite from './components/ClinicalSuite';
 import MarketingROI from './components/MarketingROI';
 import PatientContentWizard from './components/PatientContentWizard';
+import CalculatorsMenu from './components/CalculatorsMenu';
 
 import { generatePostImage, generatePostText, generateSEOArticle, generateInfographicContent, generateConversionContent, updateUserProfile } from './services/geminiService';
 import { GeneratedResult, PostState, GeneratedArticle, ArticleState, InfographicState, InfographicResult, ConversionState, ConversionResult, PostFormat, PostCategory, Tone, PubMedArticle, UserProfile } from './types';
 
-type ViewMode = 'dashboard' | 'post' | 'seo' | 'materials' | 'infographic' | 'conversion' | 'history' | 'site' | 'trends' | 'calculator' | 'publications' | 'anatomy' | 'card' | 'scores' | 'frax' | 'prescription' | 'news' | 'journey' | 'video' | 'clinical' | 'marketing_roi' | 'patient_content';
+type ViewMode = 'dashboard' | 'post' | 'seo' | 'materials' | 'infographic' | 'conversion' | 'history' | 'site' | 'trends' | 'calculator' | 'publications' | 'anatomy' | 'card' | 'scores' | 'frax' | 'prescription' | 'news' | 'journey' | 'video' | 'clinical' | 'marketing_roi' | 'patient_content' | 'calculators' | 'weight_sim' | 'visco_manager';
 
 function App() {
   // --- PERSISTENT STATE ---
@@ -173,12 +173,26 @@ function App() {
   const handleUseTrend = (partialState: Partial<PostState>) => { const fullState: PostState = { topic: '', category: partialState.category!, tone: partialState.tone!, format: partialState.format!, customInstructions: partialState.customInstructions || '', ...partialState }; setWizardInitialState(fullState); setViewMode('post'); };
   const handleUseEvidence = (article: PubMedArticle, type: 'post' | 'seo') => { if (type === 'post') { setWizardInitialState({ topic: article.title, category: PostCategory.PATHOLOGY, tone: Tone.EDUCATIONAL, format: PostFormat.FEED, customInstructions: '', evidence: article }); setViewMode('post'); } else { setArticleWizardState({ topic: article.title, keywords: '', length: 2, audience: 0, tone: Tone.EDUCATIONAL, evidence: article } as any); setViewMode('seo'); } showToast('Contexto científico carregado!'); };
 
+  // New Quick Start Handler
+  const handleQuickStart = (topic: string) => {
+      const newState: PostState = {
+          topic: topic,
+          category: PostCategory.PATHOLOGY, // Default
+          tone: Tone.PROFESSIONAL, // Default
+          format: PostFormat.FEED, // Default
+          customInstructions: ''
+      };
+      setWizardInitialState(newState);
+      setViewMode('post');
+  };
+
   const getPageInfo = () => {
     switch (viewMode) {
       case 'post': return { title: 'Criar Post', subtitle: 'Instagram Feed/Story' };
       case 'seo': return { title: 'Blog Médico', subtitle: 'Artigo SEO (Prioridade)' };
       case 'history': return { title: 'Histórico', subtitle: 'Criações Anteriores' };
       case 'clinical': return { title: 'Clínica', subtitle: 'Ferramentas de Consultório' };
+      case 'calculators': return { title: 'Calculadoras', subtitle: 'Scores e Métricas' };
       case 'publications': return { title: 'Artigos', subtitle: 'Minhas Publicações' };
       case 'patient_content': return { title: 'Portal do Paciente', subtitle: 'Comunicação Direta' };
       default: return { title: 'MediSocial', subtitle: 'Dr. Carlos Franciozi' };
@@ -188,7 +202,7 @@ function App() {
   const { title, subtitle } = getPageInfo();
   const hasResult = postResult || articleResult || infographicResult || conversionResult;
   const isGenerating = postLoading || articleLoading || infographicLoading || conversionLoading;
-  const isFullPageTool = ['trends', 'calculator', 'materials', 'site', 'publications', 'anatomy', 'card', 'scores', 'frax', 'prescription', 'news', 'journey', 'video', 'clinical', 'marketing_roi', 'patient_content'].includes(viewMode);
+  const isFullPageTool = ['trends', 'calculator', 'materials', 'site', 'publications', 'anatomy', 'card', 'scores', 'frax', 'prescription', 'news', 'journey', 'video', 'clinical', 'marketing_roi', 'patient_content', 'calculators', 'weight_sim', 'visco_manager'].includes(viewMode);
   const showPreview = hasResult || isGenerating;
 
   // --- MENU CONFIGURATION ---
@@ -223,9 +237,49 @@ function App() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative z-10">
+      {/* --- DESKTOP SIDEBAR (Visible only on lg+) --- */}
+      <aside className="hidden lg:flex flex-col w-20 xl:w-64 bg-white/80 backdrop-blur-2xl border-r border-slate-200 z-50 h-full transition-all duration-300">
+          <div className="p-6 flex items-center justify-center xl:justify-start gap-3">
+              <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shrink-0">
+                  <Flame className="w-6 h-6" />
+              </div>
+              <span className="hidden xl:block font-black text-xl tracking-tight text-slate-900">Dr. Carlos</span>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto no-scrollbar px-3 space-y-2 py-4">
+              {menuItems.map(item => {
+                  const isActive = item.id === viewMode || (item.id === 'clinical' && ['scores', 'frax', 'calculator', 'prescription', 'clinical', 'calculators'].includes(viewMode));
+                  return (
+                      <button
+                          key={item.id}
+                          onClick={() => setViewMode(item.id as ViewMode)}
+                          className={`w-full p-3 rounded-xl flex items-center gap-3 transition-all group ${isActive ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                      >
+                          <div className={`p-1 rounded-lg ${isActive ? 'bg-white/20' : 'bg-transparent'}`}>
+                              <item.icon className="w-5 h-5" />
+                          </div>
+                          <span className={`hidden xl:block text-sm font-bold ${isActive ? 'text-white' : 'text-slate-600 group-hover:text-slate-900'}`}>{item.label}</span>
+                          {isActive && <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full hidden xl:block"></div>}
+                      </button>
+                  )
+              })}
+          </nav>
+
+          <div className="p-4 border-t border-slate-200">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <img src="https://seujoelho.com/wp-content/uploads/2021/01/Dr-Carlos-Franciozi-781x1024.jpg" className="w-8 h-8 rounded-full object-cover bg-slate-200" alt="User" />
+                  <div className="hidden xl:block overflow-hidden">
+                      <p className="text-xs font-bold text-slate-900 truncate">CRM 111501</p>
+                      <p className="text-[10px] text-slate-500 truncate">Online</p>
+                  </div>
+              </div>
+          </div>
+      </aside>
+
+      {/* --- MAIN CONTENT AREA --- */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
           
-          {/* Global Header (Only for non-dashboard pages) */}
+          {/* Global Header (Only for non-dashboard pages on mobile, or always present but contextual) */}
           {viewMode !== 'dashboard' && (
             <Header 
                 onBack={() => {
@@ -249,22 +303,22 @@ function App() {
               
               {/* DASHBOARD VIEW */}
               {viewMode === 'dashboard' && (
-                  <div className="w-full h-full overflow-y-auto no-scrollbar pb-32">
-                      <Dashboard onSelectTool={(tool) => setViewMode(tool as ViewMode)} />
+                  <div className="w-full h-full overflow-y-auto no-scrollbar pb-32 lg:pb-0">
+                      <Dashboard onSelectTool={(tool) => setViewMode(tool as ViewMode)} onQuickAction={handleQuickStart} />
                   </div>
               )}
 
               {/* HISTORY VIEW */}
               {viewMode === 'history' && (
-                  <div className="w-full h-full overflow-y-auto no-scrollbar p-4 pb-32 bg-slate-50/50 backdrop-blur-sm">
-                      <h2 className="text-2xl font-black text-slate-900 mb-6 px-2">Histórico</h2>
+                  <div className="w-full h-full overflow-y-auto no-scrollbar p-4 pb-32 lg:pb-0 bg-slate-50/50 backdrop-blur-sm">
+                      <h2 className="text-2xl font-black text-slate-900 mb-6 px-2 lg:px-8 lg:pt-8">Histórico</h2>
                       {history.length === 0 ? (
                           <div className="text-center text-slate-400 mt-20 flex flex-col items-center">
                               <History className="w-16 h-16 mb-4 opacity-10" />
                               <p className="font-medium">Nenhum histórico encontrado.</p>
                           </div>
                       ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:px-8">
                               {history.map(item => (
                                   <div key={item.id} onClick={() => { setPostResult(item); setViewMode('post'); }} className="bg-white p-3 rounded-[1.5rem] shadow-card border border-slate-100 flex gap-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
                                       <div className="w-20 h-20 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 relative">
@@ -287,7 +341,7 @@ function App() {
                   <div className="flex flex-col h-full relative">
                        {/* Input Area (Hidden on Desktop if preview active, visible on mobile) */}
                        <div className={`flex-1 relative flex flex-col ${showPreview ? 'hidden lg:flex' : 'flex'} ${!isFullPageTool ? 'overflow-hidden' : 'overflow-hidden'}`}>
-                            <div className={`flex-1 overflow-y-auto no-scrollbar ${isFullPageTool ? 'w-full' : 'p-0 lg:p-6 w-full lg:max-w-2xl lg:mx-auto'}`}>
+                            <div className={`flex-1 overflow-y-auto no-scrollbar ${isFullPageTool ? 'w-full' : 'p-0 lg:p-6 w-full lg:max-w-3xl lg:mx-auto'}`}>
                                 {error && (
                                     <div className="p-4 mb-6 bg-red-50 border border-red-100 text-red-700 rounded-xl flex items-center gap-3 text-sm animate-fadeIn mx-6 mt-6 shadow-sm">
                                         <div className="w-2 h-2 rounded-full bg-red-500"></div>
@@ -313,9 +367,10 @@ function App() {
                                 {viewMode === 'news' && <MedicalNewsFeed />}
                                 {viewMode === 'journey' && <PatientJourney />}
                                 {viewMode === 'video' && <VideoWizard />}
-                                {viewMode === 'clinical' && <ClinicalSuite />}
+                                {(viewMode === 'clinical' || viewMode === 'weight_sim' || viewMode === 'visco_manager') && <ClinicalSuite />}
                                 {viewMode === 'marketing_roi' && <MarketingROI />}
                                 {viewMode === 'patient_content' && <PatientContentWizard />}
+                                {viewMode === 'calculators' && <CalculatorsMenu onSelectTool={(t) => setViewMode(t as ViewMode)} />}
                             </div>
                        </div>
 
@@ -347,47 +402,47 @@ function App() {
               )}
           </main>
 
-          {/* FLOATING GLASS DOCK (Mobile & Desktop Unified) */}
-          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] rounded-[2.5rem] flex items-center p-2 z-50 gap-1 lg:gap-2 max-w-[90%] lg:max-w-md w-full justify-between transition-all duration-300">
+          {/* FLOATING GLASS DOCK (Mobile Only) - Updated Layout for better spacing */}
+          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] rounded-[2.5rem] flex items-center p-2 z-50 gap-2 max-w-[95%] w-full justify-evenly transition-all duration-300 lg:hidden px-4">
               
               <button 
                 onClick={() => setViewMode('dashboard')} 
                 className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${viewMode === 'dashboard' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
               >
-                  <LayoutGrid className={`w-6 h-6 mb-0.5 ${viewMode === 'dashboard' ? 'animate-bounceClick' : ''}`} />
-                  {viewMode === 'dashboard' && <span className="text-[9px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Home</span>}
+                  <LayoutGrid className={`w-5 h-5 mb-0.5 ${viewMode === 'dashboard' ? 'animate-bounceClick' : ''}`} />
+                  {viewMode === 'dashboard' && <span className="text-[8px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Home</span>}
               </button>
 
               <button 
                 onClick={() => setViewMode('patient_content')} 
                 className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${viewMode === 'patient_content' ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
               >
-                  <MessageCircle className={`w-6 h-6 mb-0.5 ${viewMode === 'patient_content' ? 'animate-bounceClick' : ''}`} />
-                  {viewMode === 'patient_content' && <span className="text-[9px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Portal</span>}
+                  <MessageCircle className={`w-5 h-5 mb-0.5 ${viewMode === 'patient_content' ? 'animate-bounceClick' : ''}`} />
+                  {viewMode === 'patient_content' && <span className="text-[8px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Portal</span>}
               </button>
               
               <button 
                 onClick={() => setViewMode('post')} 
                 className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${viewMode === 'post' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
               >
-                  <PlusSquare className={`w-6 h-6 mb-0.5 ${viewMode === 'post' ? 'animate-bounceClick' : ''}`} />
-                  {viewMode === 'post' && <span className="text-[9px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Criar</span>}
+                  <PlusSquare className={`w-5 h-5 mb-0.5 ${viewMode === 'post' ? 'animate-bounceClick' : ''}`} />
+                  {viewMode === 'post' && <span className="text-[8px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Criar</span>}
+              </button>
+
+              <button 
+                onClick={() => setViewMode('calculators')} 
+                className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${['calculators', 'scores', 'frax', 'calculator'].includes(viewMode) ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+              >
+                  <Calculator className={`w-5 h-5 mb-0.5 ${['calculators', 'scores', 'frax', 'calculator'].includes(viewMode) ? 'animate-bounceClick' : ''}`} />
+                  {['calculators', 'scores', 'frax', 'calculator'].includes(viewMode) && <span className="text-[8px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Calc</span>}
               </button>
 
               <button 
                 onClick={() => setViewMode('clinical')} 
-                className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${['clinical', 'scores', 'frax', 'calculator'].includes(viewMode) ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${viewMode === 'clinical' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
               >
-                  <Activity className={`w-6 h-6 mb-0.5 ${['clinical', 'scores', 'frax', 'calculator'].includes(viewMode) ? 'animate-bounceClick' : ''}`} />
-                  {['clinical', 'scores', 'frax', 'calculator'].includes(viewMode) && <span className="text-[9px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Clínica</span>}
-              </button>
-
-              <button 
-                onClick={() => setViewMode('history')} 
-                className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${viewMode === 'history' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
-              >
-                  <History className={`w-6 h-6 mb-0.5 ${viewMode === 'history' ? 'animate-bounceClick' : ''}`} />
-                  {viewMode === 'history' && <span className="text-[9px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Hist.</span>}
+                  <Activity className={`w-5 h-5 mb-0.5 ${viewMode === 'clinical' ? 'animate-bounceClick' : ''}`} />
+                  {viewMode === 'clinical' && <span className="text-[8px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Clínica</span>}
               </button>
           </nav>
 

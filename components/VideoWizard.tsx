@@ -145,30 +145,21 @@ const VideoWizard: React.FC = () => {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-red-900/20 rounded-full blur-[100px] pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-900/10 rounded-full blur-[80px] pointer-events-none"></div>
 
-        {/* Studio Header */}
-        <div className="p-6 relative z-10">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                        <Radio className="w-6 h-6 text-red-500" />
-                        Dr. Carlos Franciozi
-                    </h1>
-                    <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-widest">Estúdio de Produção</p>
-                </div>
-                <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
-                    <button 
-                        onClick={() => setActiveTab('script')}
-                        className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'script' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        <Video className="w-3 h-3" /> Vídeo
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('podcast')}
-                        className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'podcast' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                        <Mic className="w-3 h-3" /> Podcast
-                    </button>
-                </div>
+        {/* Studio Header - Minimalist */}
+        <div className="p-6 relative z-10 flex justify-center">
+            <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-xl">
+                <button 
+                    onClick={() => setActiveTab('script')}
+                    className={`px-6 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'script' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    <Video className="w-4 h-4" /> Vídeo
+                </button>
+                <button 
+                    onClick={() => setActiveTab('podcast')}
+                    className={`px-6 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'podcast' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    <Mic className="w-4 h-4" /> Podcast
+                </button>
             </div>
         </div>
 

@@ -1,24 +1,99 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateAppointmentMessage } from '../services/geminiService';
 import { Appointment, Tone } from '../types';
 import { 
     User, MessageCircle, Send, CheckCircle2, 
-    Stethoscope, Calendar, AlertCircle, Sparkles, 
-    ArrowRight, Copy, Check, FileText
+    Stethoscope, Sparkles, ArrowRight, Copy, Check, FileText,
+    Activity, Hospital, ChevronRight, Calendar, Clock, MapPin, Undo2
 } from 'lucide-react';
 
+type ScenarioType = 'surgery_sched' | 'post_op_check' | 'exam_result' | 'conservative';
+
 const PatientContentWizard: React.FC = () => {
+  // Ensure we start at step 1 immediately
   const [step, setStep] = useState(1);
-  const [patientName, setPatientName] = useState('');
-  const [patientPhone, setPatientPhone] = useState('');
-  const [context, setContext] = useState('');
-  const [tone, setTone] = useState<Tone>(Tone.EMPATHETIC);
-  const [generatedMessage, setGeneratedMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Mock Appointment Object for the service function to keep consistency
+  // --- DATA STATE ---
+  const [patientName, setPatientName] = useState('');
+  const [patientPhone, setPatientPhone] = useState('');
+  const [tone, setTone] = useState<Tone>(Tone.EMPATHETIC);
+  const [generatedMessage, setGeneratedMessage] = useState('');
+  
+  // Scenario Selection
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioType | null>(null);
+  
+  // Dynamic Form Data
+  const [formData, setFormData] = useState({
+      date: '',
+      time: '',
+      location: '',
+      examType: '',
+      diagnosis: '',
+      daysPostOp: '',
+      painLevel: '',
+      physioStatus: ''
+  });
+
+  // Reset on mount to ensure clean state
+  useEffect(() => {
+      setStep(1);
+  }, []);
+
+  const scenarios = [
+      { 
+          id: 'surgery_sched', 
+          label: 'Agendar Cirurgia', 
+          icon: Hospital, 
+          color: 'bg-blue-50 border-blue-200 text-blue-700',
+          desc: 'Confirmar data e jejum.'
+      },
+      { 
+          id: 'post_op_check', 
+          label: 'Pós-Operatório', 
+          icon: Stethoscope, 
+          color: 'bg-green-50 border-green-200 text-green-700',
+          desc: 'Acompanhar dor e curativo.'
+      },
+      { 
+          id: 'exam_result', 
+          label: 'Explicar Exame', 
+          icon: FileText, 
+          color: 'bg-purple-50 border-purple-200 text-purple-700',
+          desc: 'Resultado de RM ou RX.'
+      },
+      { 
+          id: 'conservative', 
+          label: 'Tratamento', 
+          icon: Activity, 
+          color: 'bg-orange-50 border-orange-200 text-orange-700',
+          desc: 'Fisioterapia e remédios.'
+      }
+  ];
+
+  const handleScenarioSelect = (id: string) => {
+      setSelectedScenario(id as ScenarioType);
+      setStep(3);
+  };
+
+  const buildContextPrompt = () => {
+      let prompt = `CENÁRIO: ${scenarios.find(s => s.id === selectedScenario)?.label}.\n`;
+      
+      if (selectedScenario === 'surgery_sched') {
+          prompt += `DETALHES: Cirurgia agendada para ${formData.date} às ${formData.time} no ${formData.location}. Reforçar jejum de 8h e levar exames.`;
+      } else if (selectedScenario === 'post_op_check') {
+          prompt += `DETALHES: Paciente com ${formData.daysPostOp} dias de operado. Perguntar sobre nível de dor (0-10) e se o curativo está limpo/seco.`;
+      } else if (selectedScenario === 'exam_result') {
+          prompt += `DETALHES: Resultado de ${formData.examType}. Diagnóstico resumido: ${formData.diagnosis}. Explicar de forma calma e propor conduta.`;
+      } else if (selectedScenario === 'conservative') {
+          prompt += `DETALHES: Orientar início de Fisioterapia. Status atual: ${formData.physioStatus}. Motivar a constância no tratamento.`;
+      }
+      return prompt;
+  };
+
+  // Mock Appointment
   const createMockAppointment = (): Appointment => ({
       id: 'temp',
       patientName: patientName,
@@ -32,15 +107,17 @@ const PatientContentWizard: React.FC = () => {
   const handleGenerate = async () => {
       setIsGenerating(true);
       try {
+          const contextNote = buildContextPrompt();
           const msg = await generateAppointmentMessage({ 
               appointment: createMockAppointment(), 
               tone: tone,
-              customNote: context 
+              customNote: contextNote 
           });
           setGeneratedMessage(msg);
-          setStep(3);
+          setStep(4);
       } catch (e) {
           console.error(e);
+          alert("Erro ao gerar mensagem. Verifique sua conexão.");
       } finally {
           setIsGenerating(false);
       }
@@ -52,147 +129,241 @@ const PatientContentWizard: React.FC = () => {
       setTimeout(() => setCopied(false), 2000);
   };
 
-  const contexts = [
-      { id: 'pre_op', label: 'Pré-Operatório', icon: Calendar, desc: 'Lembretes de jejum e exames.' },
-      { id: 'post_op', label: 'Pós-Operatório', icon: Stethoscope, desc: 'Como está a dor? Curativo?' },
-      { id: 'exam_result', label: 'Resultado de Exame', icon: FileText, desc: 'Explicação de RM ou RX.' },
-      { id: 'birthday', label: 'Aniversário', icon: Sparkles, desc: 'Felicitações e lembrança.' },
-  ];
+  const resetForm = () => {
+      setStep(1);
+      setPatientName('');
+      setPatientPhone('');
+      setSelectedScenario(null);
+      setFormData({
+          date: '', time: '', location: '', examType: '', diagnosis: '', daysPostOp: '', painLevel: '', physioStatus: ''
+      });
+      setGeneratedMessage('');
+  };
 
   return (
     <div className="h-full bg-slate-50 flex flex-col pb-24 lg:pb-0 animate-fadeIn">
         
-        {/* Header */}
-        <div className="p-6 bg-white border-b border-slate-100">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Portal do Paciente</h1>
-            <p className="text-sm text-slate-500 font-medium mt-1">Comunicação direta e humanizada com a IA.</p>
+        {/* Header Strip */}
+        <div className="bg-white px-6 py-4 border-b border-slate-100 sticky top-0 z-20 shadow-sm flex items-center justify-between">
+            <h1 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-blue-600" />
+                Portal do Paciente
+            </h1>
+            <span className="text-[10px] font-bold bg-slate-100 px-2 py-1 rounded text-slate-500">
+                Passo {step}/4
+            </span>
         </div>
 
         <div className="flex-1 overflow-y-auto no-scrollbar p-6">
             
-            {/* STEP 1: Patient Info */}
+            {/* STEP 1: IDENTIFICATION */}
             {step === 1 && (
-                <div className="max-w-lg mx-auto space-y-6 animate-slideUp">
-                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
-                        <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <User className="w-5 h-5 text-blue-600" /> Dados do Paciente
-                        </h2>
-                        
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nome Completo</label>
-                                <input 
-                                    type="text" 
-                                    value={patientName}
-                                    onChange={(e) => setPatientName(e.target.value)}
-                                    className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-2 focus:ring-blue-100 font-bold text-slate-900"
-                                    placeholder="Ex: João da Silva"
-                                    autoFocus
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">WhatsApp (Com DDD)</label>
-                                <input 
-                                    type="tel" 
-                                    value={patientPhone}
-                                    onChange={(e) => setPatientPhone(e.target.value)}
-                                    className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 outline-none focus:ring-2 focus:ring-blue-100 font-mono text-slate-700"
-                                    placeholder="Ex: 11999999999"
-                                />
-                            </div>
+                <div className="max-w-md mx-auto space-y-6 animate-slideUp">
+                    <div className="text-center pt-4 pb-6">
+                        <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-lg">
+                            <User className="w-10 h-10" />
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-900">Quem é o paciente?</h2>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nome Completo</label>
+                            <input 
+                                type="text" 
+                                value={patientName}
+                                onChange={(e) => setPatientName(e.target.value)}
+                                className="w-full text-lg font-bold text-slate-900 outline-none bg-transparent placeholder:text-slate-300"
+                                placeholder="Ex: João da Silva"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
+                            <input 
+                                type="tel" 
+                                value={patientPhone}
+                                onChange={(e) => setPatientPhone(e.target.value)}
+                                className="w-full text-lg font-mono font-medium text-slate-700 outline-none bg-transparent placeholder:text-slate-300"
+                                placeholder="11 99999-9999"
+                            />
                         </div>
                     </div>
 
                     <button 
                         onClick={() => setStep(2)}
                         disabled={!patientName}
-                        className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                        className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50 active:scale-[0.98]"
                     >
                         Continuar <ArrowRight className="w-5 h-5" />
                     </button>
                 </div>
             )}
 
-            {/* STEP 2: Context & Generation */}
+            {/* STEP 2: SCENARIO */}
             {step === 2 && (
                 <div className="max-w-lg mx-auto space-y-6 animate-slideUp">
-                    <div className="space-y-3">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Qual o motivo da mensagem?</label>
-                        <div className="grid grid-cols-2 gap-3">
-                            {contexts.map(c => (
-                                <button 
-                                    key={c.id}
-                                    onClick={() => setContext(c.label)}
-                                    className={`p-4 rounded-xl border text-left transition-all active:scale-[0.98]
-                                    ${context === c.label ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 bg-white hover:border-slate-300'}`}
-                                >
-                                    <div className={`p-2 rounded-lg w-fit mb-2 ${context === c.label ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
-                                        <c.icon className="w-5 h-5" />
-                                    </div>
-                                    <span className={`block font-bold text-sm ${context === c.label ? 'text-blue-900' : 'text-slate-900'}`}>{c.label}</span>
-                                    <span className="text-[10px] text-slate-500">{c.desc}</span>
-                                </button>
-                            ))}
-                        </div>
+                    <div className="text-center mb-6 pt-2">
+                        <h2 className="text-2xl font-black text-slate-900">Motivo do Contato</h2>
+                        <p className="text-sm text-slate-500">Selecione o contexto para a IA.</p>
                     </div>
 
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200">
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Instruções Específicas</label>
-                        <textarea 
-                            value={context}
-                            onChange={(e) => setContext(e.target.value)}
-                            className="w-full p-3 bg-slate-50 rounded-xl outline-none text-sm font-medium h-24 resize-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all"
-                            placeholder="Ex: Perguntar se o inchaço diminuiu, lembrar de trazer o RX..."
-                        />
+                    <div className="grid grid-cols-1 gap-3">
+                        {scenarios.map((scenario) => (
+                            <button
+                                key={scenario.id}
+                                onClick={() => handleScenarioSelect(scenario.id)}
+                                className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left bg-white hover:shadow-md active:scale-[0.98] group relative overflow-hidden ${scenario.color}`}
+                            >
+                                <div className={`p-3 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm shrink-0`}>
+                                    <scenario.icon className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1 relative z-10">
+                                    <span className="block font-black text-slate-900 text-sm">{scenario.label}</span>
+                                    <span className="text-xs font-bold opacity-70 block mt-0.5">{scenario.desc}</span>
+                                </div>
+                                <ChevronRight className="w-5 h-5 opacity-40" />
+                            </button>
+                        ))}
                     </div>
-
-                    <button 
-                        onClick={handleGenerate}
-                        disabled={isGenerating || !context}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 active:scale-95"
-                    >
-                        {isGenerating ? <><Sparkles className="w-5 h-5 animate-spin" /> Escrevendo...</> : <><Sparkles className="w-5 h-5" /> Gerar Mensagem</>}
+                    
+                    <button onClick={() => setStep(1)} className="w-full py-4 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600 flex items-center justify-center gap-2">
+                        <Undo2 className="w-4 h-4" /> Voltar
                     </button>
                 </div>
             )}
 
-            {/* STEP 3: Review & Send */}
-            {step === 3 && (
-                <div className="max-w-lg mx-auto space-y-6 animate-scaleIn">
-                    <div className="bg-green-50 p-6 rounded-[2rem] border border-green-100 text-center">
-                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CheckCircle2 className="w-8 h-8" />
+            {/* STEP 3: FORM */}
+            {step === 3 && selectedScenario && (
+                <div className="max-w-lg mx-auto space-y-6 animate-slideUp">
+                    <div className="flex items-center gap-3 mb-4 bg-slate-100 p-3 rounded-xl border border-slate-200">
+                        <div className="bg-white p-2 rounded-lg shadow-sm">
+                            {React.createElement(scenarios.find(s => s.id === selectedScenario)?.icon || MessageCircle, { className: "w-5 h-5 text-slate-900" })}
                         </div>
-                        <h2 className="text-xl font-bold text-green-900">Mensagem Pronta!</h2>
-                        <p className="text-sm text-green-700">Revise antes de enviar para {patientName}.</p>
+                        <h2 className="font-bold text-slate-900 text-sm">
+                            {scenarios.find(s => s.id === selectedScenario)?.label}
+                        </h2>
                     </div>
 
-                    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative group">
+                    <div className="space-y-4">
+                        {/* SURGERY FIELDS */}
+                        {selectedScenario === 'surgery_sched' && (
+                            <>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Data</label>
+                                        <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full outline-none font-bold text-slate-900 bg-transparent text-sm" />
+                                    </div>
+                                    <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Horário</label>
+                                        <input type="time" value={formData.time} onChange={e => setFormData({...formData, time: e.target.value})} className="w-full outline-none font-bold text-slate-900 bg-transparent text-sm" />
+                                    </div>
+                                </div>
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Hospital / Local</label>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-0 top-0.5 w-4 h-4 text-slate-300" />
+                                        <input type="text" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full pl-6 outline-none font-bold text-slate-900 placeholder:text-slate-300 bg-transparent text-sm" placeholder="Ex: Hospital Albert Einstein" />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* POST OP FIELDS */}
+                        {selectedScenario === 'post_op_check' && (
+                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Dias de Pós-Operatório</label>
+                                <input type="number" value={formData.daysPostOp} onChange={e => setFormData({...formData, daysPostOp: e.target.value})} className="w-full outline-none font-bold text-slate-900 placeholder:text-slate-300 bg-transparent" placeholder="Ex: 3 dias" />
+                            </div>
+                        )}
+
+                        {/* EXAM FIELDS */}
+                        {selectedScenario === 'exam_result' && (
+                            <>
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tipo do Exame</label>
+                                    <input type="text" value={formData.examType} onChange={e => setFormData({...formData, examType: e.target.value})} className="w-full outline-none font-bold text-slate-900 placeholder:text-slate-300 bg-transparent" placeholder="Ex: Ressonância do Joelho" />
+                                </div>
+                                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Diagnóstico Resumido</label>
+                                    <textarea value={formData.diagnosis} onChange={e => setFormData({...formData, diagnosis: e.target.value})} className="w-full outline-none font-medium text-slate-700 placeholder:text-slate-300 h-24 resize-none bg-transparent text-sm" placeholder="Ex: Lesão de menisco." />
+                                </div>
+                            </>
+                        )}
+
+                        {/* CONSERVATIVE FIELDS */}
+                        {selectedScenario === 'conservative' && (
+                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status do Tratamento</label>
+                                <input type="text" value={formData.physioStatus} onChange={e => setFormData({...formData, physioStatus: e.target.value})} className="w-full outline-none font-bold text-slate-900 placeholder:text-slate-300 bg-transparent" placeholder="Ex: Iniciando fortalecimento" />
+                            </div>
+                        )}
+
+                        {/* Tone Selector */}
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">Tom da Mensagem</label>
+                            <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                                <button onClick={() => setTone(Tone.PROFESSIONAL)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${tone === Tone.PROFESSIONAL ? 'bg-slate-900 text-white shadow' : 'text-slate-500'}`}>Sério</button>
+                                <button onClick={() => setTone(Tone.EMPATHETIC)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${tone === Tone.EMPATHETIC ? 'bg-slate-900 text-white shadow' : 'text-slate-500'}`}>Empático</button>
+                                <button onClick={() => setTone(Tone.MOTIVATIONAL)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${tone === Tone.MOTIVATIONAL ? 'bg-slate-900 text-white shadow' : 'text-slate-500'}`}>Motivador</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button onClick={() => setStep(2)} className="flex-1 bg-white border border-slate-200 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-colors">
+                            Voltar
+                        </button>
+                        <button 
+                            onClick={handleGenerate}
+                            disabled={isGenerating}
+                            className="flex-[2] bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70"
+                        >
+                            {isGenerating ? <Sparkles className="w-5 h-5 animate-spin" /> : <><Sparkles className="w-5 h-5" /> Gerar Mensagem</>}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* STEP 4: RESULT */}
+            {step === 4 && (
+                <div className="max-w-lg mx-auto space-y-6 animate-scaleIn">
+                    <div className="bg-green-50 p-6 rounded-[2rem] border border-green-100 text-center shadow-sm">
+                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
+                            <CheckCircle2 className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-xl font-black text-green-900">Tudo Pronto!</h2>
+                        <p className="text-sm text-green-700 font-medium mt-1">Mensagem criada para <strong>{patientName}</strong></p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-xl relative group">
+                        <div className="absolute top-4 right-4 z-10">
+                            <button 
+                                onClick={handleCopy}
+                                className="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-slate-700 transition-colors border border-slate-100 hover:border-slate-300"
+                            >
+                                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                        </div>
                         <textarea 
                             value={generatedMessage}
                             onChange={(e) => setGeneratedMessage(e.target.value)}
-                            className="w-full h-48 resize-none outline-none text-slate-600 font-medium leading-relaxed bg-transparent"
+                            className="w-full h-64 resize-none outline-none text-slate-600 font-medium leading-relaxed bg-transparent text-sm pr-10"
                         />
-                        <button 
-                            onClick={handleCopy}
-                            className="absolute top-4 right-4 p-2 bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
-                        >
-                            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                        </button>
                     </div>
 
                     <div className="flex gap-3">
                         <button 
-                            onClick={() => { setStep(1); setPatientName(''); setPatientPhone(''); setContext(''); }}
-                            className="flex-1 bg-white border border-slate-200 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-95"
+                            onClick={resetForm}
+                            className="flex-1 bg-white border border-slate-200 text-slate-500 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-all active:scale-95 text-xs uppercase tracking-wide"
                         >
-                            Novo Paciente
+                            Novo
                         </button>
                         <button 
-                            onClick={() => window.open(`https://wa.me/${patientPhone}?text=${encodeURIComponent(generatedMessage)}`, '_blank')}
-                            className="flex-[2] bg-[#25D366] text-white py-4 rounded-2xl font-bold shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 hover:brightness-105 transition-all active:scale-95"
+                            onClick={() => window.open(`https://wa.me/${patientPhone ? '55' + patientPhone.replace(/\D/g, '') : ''}?text=${encodeURIComponent(generatedMessage)}`, '_blank')}
+                            className="flex-[2] bg-[#25D366] text-white py-4 rounded-2xl font-bold shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 hover:brightness-105 transition-all active:scale-[0.98]"
                         >
-                            <Send className="w-5 h-5" /> Enviar WhatsApp
+                            <Send className="w-5 h-5" /> Enviar
                         </button>
                     </div>
                 </div>

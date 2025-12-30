@@ -1,4 +1,6 @@
 
+
+
 import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { PostState, GeneratedPostContent, ArticleState, GeneratedArticle, InfographicState, GeneratedInfographic, ConversionState, ConversionResult, PostFormat, MessageTemplateState, TrendTopic, ComplianceAuditResult, NewsItem, VideoState, VideoScriptResult, WoundAnalysisResult, DrugInteractionResult, SupplementPlan, UserProfile, Appointment, Tone } from "../types";
 
@@ -65,6 +67,49 @@ async function callGeminiWithRetry<T>(
 
 // --- GENERATORS ---
 
+export const transformScienceToContent = async (rawText: string, format: 'POST' | 'SCRIPT' | 'SIMPLIFIED' | 'EMAIL'): Promise<string> => {
+    return callGeminiWithRetry(async () => {
+        let instruction = "";
+        
+        switch(format) {
+            case 'POST':
+                instruction = "Crie uma legenda para Instagram engajadora, destacando a descoberta principal deste estudo e como ela beneficia o paciente. Use emojis e hashtags.";
+                break;
+            case 'SCRIPT':
+                instruction = "Crie um roteiro de vídeo curto (Reels/TikTok) de 60 segundos. Use linguagem falada, gancho visual e Call to Action. Divida em: Gancho, Problema, Ciência (O Estudo), Solução.";
+                break;
+            case 'SIMPLIFIED':
+                instruction = "Resuma este estudo científico em linguagem extremamente simples (nível 5ª série) para um paciente leigo entender. Use analogias.";
+                break;
+            case 'EMAIL':
+                instruction = "Escreva um e-mail para colegas médicos recomendando a leitura deste estudo, destacando os pontos técnicos inovadores.";
+                break;
+        }
+
+        const prompt = `
+            ${getPersonaContext()}
+            ${CFM_COMPLIANCE_INSTRUCTIONS}
+            
+            TAREFA: Transformar o seguinte texto científico no formato: ${format}.
+            
+            TEXTO CIENTÍFICO ORIGINAL:
+            "${rawText.substring(0, 15000)}" // Limit check
+
+            INSTRUÇÃO ESPECÍFICA:
+            ${instruction}
+            
+            Retorne apenas o conteúdo gerado.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt
+        });
+
+        return response.text || "Erro ao gerar conteúdo.";
+    });
+};
+
 export const generateKeywordsForTopic = async (topic: string): Promise<string> => {
     return callGeminiWithRetry(async () => {
         const prompt = `Atue como um especialista em SEO Médico.
@@ -91,7 +136,7 @@ export const generatePostText = async (state: PostState): Promise<GeneratedPostC
             *** BASE CIENTÍFICA (RAG) ***
             Baseie-se neste estudo:
             "${state.evidence.title}" (${state.evidence.source}, ${state.evidence.pubdate}).
-            Abstract: "${state.evidence.abstract || 'N/A'}"
+            Conteúdo: "${state.evidence.abstract || 'N/A'}"
           `;
       }
 

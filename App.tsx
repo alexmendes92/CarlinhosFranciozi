@@ -169,6 +169,19 @@ function App() {
   const handleUseTrend = (partialState: Partial<PostState>) => { const fullState: PostState = { topic: '', category: partialState.category!, tone: partialState.tone!, format: partialState.format!, customInstructions: partialState.customInstructions || '', ...partialState }; setWizardInitialState(fullState); setViewMode('post'); };
   const handleUseEvidence = (article: PubMedArticle, type: 'post' | 'seo') => { if (type === 'post') { setWizardInitialState({ topic: article.title, category: PostCategory.PATHOLOGY, tone: Tone.EDUCATIONAL, format: PostFormat.FEED, customInstructions: '', evidence: article }); setViewMode('post'); } else { setArticleWizardState({ topic: article.title, keywords: '', length: 2, audience: 0, tone: Tone.EDUCATIONAL, evidence: article } as any); setViewMode('seo'); } showToast('Contexto científico carregado!'); };
 
+  // New Quick Start Handler
+  const handleQuickStart = (topic: string) => {
+      const newState: PostState = {
+          topic: topic,
+          category: PostCategory.PATHOLOGY, // Default
+          tone: Tone.PROFESSIONAL, // Default
+          format: PostFormat.FEED, // Default
+          customInstructions: ''
+      };
+      setWizardInitialState(newState);
+      setViewMode('post');
+  };
+
   const getPageInfo = () => {
     switch (viewMode) {
       case 'post': return { title: 'Criar Post', subtitle: 'Instagram Feed/Story' };
@@ -251,7 +264,7 @@ function App() {
               {/* DASHBOARD VIEW */}
               {viewMode === 'dashboard' && (
                   <div className="w-full h-full overflow-y-auto no-scrollbar pb-32">
-                      <Dashboard onSelectTool={(tool) => setViewMode(tool as ViewMode)} />
+                      <Dashboard onSelectTool={(tool) => setViewMode(tool as ViewMode)} onQuickAction={handleQuickStart} />
                   </div>
               )}
 
