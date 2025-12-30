@@ -45,7 +45,7 @@ const CalculatorsMenu: React.FC<CalculatorsMenuProps> = ({ onSelectTool }) => {
             bg: 'bg-orange-50'
         },
         {
-            id: 'weight_sim', // Will map to Clinical Suite -> Weight tool
+            id: 'weight', // Will map to Clinical Suite -> Weight tool
             title: 'Carga Articular',
             desc: 'Simulador de impacto de peso no joelho.',
             icon: Scale,
@@ -53,7 +53,7 @@ const CalculatorsMenu: React.FC<CalculatorsMenuProps> = ({ onSelectTool }) => {
             bg: 'bg-cyan-50'
         },
         {
-            id: 'visco_manager', // Will map to Clinical Suite -> Visco tool
+            id: 'visco', // Will map to Clinical Suite -> Visco tool
             title: 'Gestão de Visco',
             desc: 'Ciclo de ácido hialurônico.',
             icon: Syringe,

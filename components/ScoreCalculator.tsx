@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { ClipboardList, CheckCircle2, Calculator, Info, ChevronRight, ArrowLeft, Activity, AlertCircle, RotateCcw, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { ClipboardList, CheckCircle2, Calculator, Info, ChevronRight, ArrowLeft, Activity, AlertCircle, RotateCcw, Check, Share2, Flame } from 'lucide-react';
 
 type ScoreType = 'lysholm' | 'ikdc' | 'koos' | 'womac';
 
@@ -17,6 +18,7 @@ const ScoreCalculator: React.FC = () => {
   const [showResult, setShowResult] = useState(false);
   const [finalScore, setFinalScore] = useState<number>(0);
   const [displayScore, setDisplayScore] = useState(0);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const scores = [
     { id: 'lysholm', name: 'Lysholm Score', desc: 'Avaliação de sintomas e função (Ligamentar/Meniscal).', color: 'text-blue-600 bg-blue-50' },
@@ -134,6 +136,42 @@ const ScoreCalculator: React.FC = () => {
       setShowResult(true);
   };
 
+  const handleShareImage = async () => {
+      if (resultRef.current) {
+          try {
+              const canvas = await html2canvas(resultRef.current, {
+                  scale: 2,
+                  backgroundColor: '#ffffff',
+                  useCORS: true
+              });
+              
+              canvas.toBlob(async (blob) => {
+                  if (blob) {
+                      const file = new File([blob], 'resultado_score.png', { type: 'image/png' });
+                      if (navigator.share) {
+                          try {
+                              await navigator.share({
+                                  files: [file],
+                                  title: 'Resultado de Avaliação',
+                                  text: `Avaliação do Paciente - Score: ${finalScore}`
+                              });
+                          } catch (err) {
+                              console.log('Cancelado', err);
+                          }
+                      } else {
+                          const link = document.createElement('a');
+                          link.download = 'resultado.png';
+                          link.href = canvas.toDataURL();
+                          link.click();
+                      }
+                  }
+              });
+          } catch (e) {
+              alert("Erro ao capturar imagem.");
+          }
+      }
+  };
+
   // Animation for score counting
   useEffect(() => {
       if (showResult) {
@@ -182,25 +220,23 @@ const ScoreCalculator: React.FC = () => {
       const interpretation = getInterpretation(finalScore);
       const radius = 90; 
       const circumference = 2 * Math.PI * radius;
-      // We animate strokeDashoffset based on displayScore to sync with the number
       const offset = circumference - (circumference * displayScore) / 100;
 
       return (
           <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-6 animate-fadeIn pb-24 lg:pb-0">
-              <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl p-8 text-center relative overflow-hidden w-full max-w-sm">
-                  
+              
+              {/* CAPTURABLE AREA */}
+              <div ref={resultRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-xl p-8 text-center relative overflow-hidden w-full max-w-sm mb-4">
+                  {/* Branding Header in Capture */}
+                  <div className="flex items-center justify-center gap-2 mb-6 pb-4 border-b border-slate-50">
+                      <Flame className="w-4 h-4 text-slate-900" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Dr. Carlos Franciozi</span>
+                  </div>
+
                   {/* Circle Chart */}
                   <div className="relative w-64 h-64 mx-auto mb-6">
                       <svg className="w-full h-full transform -rotate-90 drop-shadow-sm" viewBox="0 0 256 256">
-                          {/* Track */}
-                          <circle 
-                              cx="128" cy="128" r={radius} 
-                              stroke="#f1f5f9" 
-                              strokeWidth="16" 
-                              fill="transparent" 
-                              strokeLinecap="round"
-                          />
-                          {/* Progress Indicator */}
+                          <circle cx="128" cy="128" r={radius} stroke="#f1f5f9" strokeWidth="16" fill="transparent" strokeLinecap="round" />
                           <circle 
                               cx="128" cy="128" r={radius} 
                               stroke={interpretation.stroke} 
@@ -213,7 +249,6 @@ const ScoreCalculator: React.FC = () => {
                           />
                       </svg>
                       
-                      {/* Centered Text - Fixed alignment */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center pt-2">
                           <span className={`text-8xl font-black tracking-tighter leading-none ${interpretation.color}`}>
                               {displayScore}
@@ -222,7 +257,7 @@ const ScoreCalculator: React.FC = () => {
                       </div>
                   </div>
 
-                  <div className="mb-8">
+                  <div className="mb-4">
                       <h2 className={`text-4xl font-black mb-4 ${interpretation.color} tracking-tight`}>
                           {interpretation.label}
                       </h2>
@@ -230,10 +265,24 @@ const ScoreCalculator: React.FC = () => {
                           {interpretation.msg}
                       </div>
                   </div>
+                  
+                  {/* Footer Branding */}
+                  <div className="mt-4 pt-2 border-t border-slate-50 text-[9px] text-slate-300 font-bold uppercase tracking-widest">
+                      {scores.find(s => s.id === activeScore)?.name}
+                  </div>
+              </div>
+
+              <div className="w-full max-w-sm flex flex-col gap-3">
+                  <button 
+                    onClick={handleShareImage}
+                    className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                  >
+                      <Share2 className="w-4 h-4" /> Compartilhar Imagem
+                  </button>
 
                   <button 
                     onClick={reset}
-                    className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-white text-slate-900 border border-slate-200 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                   >
                       <RotateCcw className="w-4 h-4" /> Novo Cálculo
                   </button>
@@ -242,7 +291,7 @@ const ScoreCalculator: React.FC = () => {
       );
   }
 
-  // 2. QUESTION WIZARD
+  // 2. QUESTION WIZARD (Remaining code unchanged)
   if (activeScore) {
       const activeQuestions = questions[activeScore];
       const question = activeQuestions[currentQuestionIndex];
@@ -250,7 +299,6 @@ const ScoreCalculator: React.FC = () => {
 
       return (
           <div className="h-full bg-slate-50 flex flex-col pb-24 lg:pb-0">
-              
               {/* Header */}
               <div className="px-6 pt-6 pb-2">
                   <div className="flex justify-between items-center mb-4">
@@ -304,13 +352,11 @@ const ScoreCalculator: React.FC = () => {
       );
   }
 
-  // 3. MENU (Grid Selection)
+  // 3. MENU (Grid Selection - Unchanged)
   return (
     <div className="h-full bg-slate-50 flex flex-col pb-24 lg:pb-0 animate-fadeIn">
-        
         <div className="flex-1 overflow-y-auto p-4 lg:p-6">
             <div className="max-w-4xl mx-auto">
-                
                 <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 mb-8 flex items-center gap-6 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -mr-10 -mt-10"></div>
                     <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shrink-0 relative z-10">
@@ -349,7 +395,6 @@ const ScoreCalculator: React.FC = () => {
                         <strong>Nota Técnica:</strong> Todos os resultados são normalizados para uma escala de 0 a 100, onde <strong>100 representa a melhor condição clínica</strong>.
                     </p>
                 </div>
-
             </div>
         </div>
     </div>

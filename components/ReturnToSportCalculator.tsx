@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import { RTSMetrics, RTSHistoryEntry } from '../types';
 import { 
     Activity, Dumbbell, Brain, Ruler, CheckCircle, AlertTriangle, XCircle, 
-    Save, History, ChevronRight, TrendingUp, TrendingDown, Minus, RefreshCw
+    Save, History, ChevronRight, TrendingUp, TrendingDown, Minus, RefreshCw, Share2, Flame
 } from 'lucide-react';
 
 const ReturnToSportCalculator: React.FC = () => {
@@ -21,6 +22,7 @@ const ReturnToSportCalculator: React.FC = () => {
   const [history, setHistory] = useState<RTSHistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
+  const captureRef = useRef<HTMLDivElement>(null);
 
   // Load History
   useEffect(() => {
@@ -74,6 +76,27 @@ const ReturnToSportCalculator: React.FC = () => {
       setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
+  const handleShareImage = async () => {
+      if (captureRef.current) {
+          try {
+              const canvas = await html2canvas(captureRef.current, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+              canvas.toBlob(async (blob) => {
+                  if (blob) {
+                      const file = new File([blob], 'rts_report.png', { type: 'image/png' });
+                      if (navigator.share) {
+                          try { await navigator.share({ files: [file], title: 'Protocolo RTS' }); } catch (e) { console.log(e); }
+                      } else {
+                          const link = document.createElement('a');
+                          link.download = 'rts.png';
+                          link.href = canvas.toDataURL();
+                          link.click();
+                      }
+                  }
+              });
+          } catch (e) { alert("Erro na imagem."); }
+      }
+  };
+
   const getStatus = (s: number) => {
       if (s >= 90) return { label: 'APTO', color: 'text-emerald-500', stroke: '#10b981', bg: 'bg-emerald-500', msg: 'Retorno total liberado.' };
       if (s >= 75) return { label: 'TREINO', color: 'text-amber-500', stroke: '#f59e0b', bg: 'bg-amber-500', msg: 'Retorno gradual/protegido.' };
@@ -92,7 +115,6 @@ const ReturnToSportCalculator: React.FC = () => {
       
       const angleSlice = (Math.PI * 2) / 5;
 
-      // Helper to calculate points
       const getPoint = (val: number, i: number) => {
           const r = (val / 100) * radius;
           const x = center + r * Math.cos(i * angleSlice - Math.PI / 2);
@@ -101,57 +123,42 @@ const ReturnToSportCalculator: React.FC = () => {
       };
 
       const pointsString = dataValues.map((v, i) => getPoint(v, i)).join(' ');
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const fullString = dataValues.map((_, i) => getPoint(100, i)).join(' '); // For background grid
 
       return (
           <div className="relative flex items-center justify-center">
               <svg width={size} height={size} className="overflow-visible">
-                  {/* Background Pentagon levels */}
                   {[25, 50, 75, 100].map((level, idx) => (
                       <polygon 
                         key={idx}
                         points={dataValues.map((_, i) => {
-                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
                             const r = (level / 100) * radius;
                             const x = center + r * Math.cos(i * angleSlice - Math.PI / 2);
                             const y = center + r * Math.sin(i * angleSlice - Math.PI / 2);
                             return `${x},${y}`;
                         }).join(' ')}
-                        fill="none" 
-                        stroke="#e2e8f0" 
-                        strokeWidth="1" 
+                        fill="none" stroke="#e2e8f0" strokeWidth="1" 
                       />
                   ))}
                   
-                  {/* Axes Lines */}
                   {dataValues.map((_, i) => {
                       const end = getPoint(100, i).split(',');
                       return <line key={i} x1={center} y1={center} x2={end[0]} y2={end[1]} stroke="#e2e8f0" strokeWidth="1" />;
                   })}
 
-                  {/* Data Area */}
                   <polygon points={pointsString} fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" strokeWidth="2" />
                   
-                  {/* Data Points */}
                   {dataValues.map((v, i) => {
                       const [x, y] = getPoint(v, i).split(',');
                       return <circle key={i} cx={x} cy={y} r="3" fill="#10b981" />;
                   })}
 
-                  {/* Labels */}
                   {axes.map((label, i) => {
                       const rLabel = radius + 15;
                       const x = center + rLabel * Math.cos(i * angleSlice - Math.PI / 2);
                       const y = center + rLabel * Math.sin(i * angleSlice - Math.PI / 2);
                       return (
                           <text 
-                            key={i} x={x} y={y} 
-                            fontSize="8" 
-                            textAnchor="middle" 
-                            alignmentBaseline="middle" 
-                            fill="#64748b" 
-                            className="font-bold uppercase tracking-wider"
+                            key={i} x={x} y={y} fontSize="8" textAnchor="middle" alignmentBaseline="middle" fill="#64748b" className="font-bold uppercase tracking-wider"
                           >
                               {label}
                           </text>
@@ -176,9 +183,7 @@ const ReturnToSportCalculator: React.FC = () => {
                 style={{ width: `${((value - min) / (max - min)) * 100}%` }}
             ></div>
             <input 
-                type="range" min={min} max={max} 
-                value={value}
-                onChange={(e) => onChange(Number(e.target.value))}
+                type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <div 
@@ -221,7 +226,6 @@ const ReturnToSportCalculator: React.FC = () => {
                         </div>
                     )}
                     {history.map((entry, idx) => {
-                        // Compare with previous entry if exists
                         const prevScore = idx < history.length - 1 ? history[idx+1].score : entry.score;
                         const trend = entry.score - prevScore;
                         
@@ -233,7 +237,7 @@ const ReturnToSportCalculator: React.FC = () => {
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-slate-900 text-sm">{entry.patientName}</h3>
-                                        <p className="text-[10px] text-slate-400 font-medium">{new Date(entry.date).toLocaleDateString()} • {new Date(entry.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                                        <p className="text-[10px] text-slate-400 font-medium">{new Date(entry.date).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                                 
@@ -250,11 +254,8 @@ const ReturnToSportCalculator: React.FC = () => {
             ) : (
                 <div className="space-y-4 animate-slideUp pb-20">
                     
-                    {/* Patient Input - Updated to Soft Style */}
                     <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 relative">
-                        <div className="absolute left-4 text-slate-400">
-                            <Activity className="w-5 h-5" />
-                        </div>
+                        <div className="absolute left-4 text-slate-400"><Activity className="w-5 h-5" /></div>
                         <input 
                             type="text"
                             placeholder="Nome do Paciente"
@@ -267,18 +268,18 @@ const ReturnToSportCalculator: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* SCORE DASHBOARD */}
-                    <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
-                        
+                    {/* SCORE DASHBOARD - CAPTURE TARGET */}
+                    <div ref={captureRef} className="bg-white rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
+                        {/* Capture Branding */}
+                        <div className="flex items-center justify-center gap-2 mb-6 border-b border-slate-50 pb-2">
+                            <Flame className="w-3 h-3 text-slate-900" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Dr. Carlos Franciozi</span>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center relative z-10">
-                            
-                            {/* Left: Speedometer Gauge */}
                             <div className="flex flex-col items-center justify-center">
                                 <div className="relative w-48 h-24 overflow-hidden mb-2">
-                                    {/* Gauge Background */}
                                     <div className="absolute top-0 left-0 w-48 h-48 rounded-full border-[12px] border-slate-100 box-border"></div>
-                                    
-                                    {/* Gauge Color Arc (CSS Gradient Conic) */}
                                     <div 
                                         className="absolute top-0 left-0 w-48 h-48 rounded-full border-[12px] border-transparent box-border transition-all duration-700 ease-out"
                                         style={{ 
@@ -289,8 +290,6 @@ const ReturnToSportCalculator: React.FC = () => {
                                             transform: 'rotate(0deg)'
                                         }}
                                     ></div>
-
-                                    {/* Needle */}
                                     <div 
                                         className="absolute bottom-0 left-1/2 w-1 h-24 bg-slate-800 origin-bottom rounded-full transition-transform duration-1000 ease-out z-20 shadow-lg"
                                         style={{ transform: `translateX(-50%) rotate(${(score / 100) * 180 - 90}deg)` }}
@@ -309,7 +308,6 @@ const ReturnToSportCalculator: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Right: Radar Chart */}
                             <div className="flex flex-col items-center">
                                 <RadarChart values={{ 
                                     lsi: calculatedValues.lsi, 
@@ -321,7 +319,6 @@ const ReturnToSportCalculator: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Footer Message */}
                         <div className="mt-6 pt-4 border-t border-slate-100 text-center">
                             <p className="text-xs font-medium text-slate-500">
                                 {status.msg} <span className="font-bold text-slate-800">Foque nos pontos mais próximos do centro.</span>
@@ -329,31 +326,29 @@ const ReturnToSportCalculator: React.FC = () => {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-3">
+                        <button 
+                            onClick={handleSave}
+                            className={`py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]
+                            ${saveStatus === 'saved' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-slate-900 text-white shadow-slate-900/30 hover:bg-slate-800'}`}
+                        >
+                            {saveStatus === 'saved' ? <CheckCircle className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+                            {saveStatus === 'saved' ? 'Salvo!' : 'Salvar'}
+                        </button>
+                        <button 
+                            onClick={handleShareImage}
+                            className="py-4 bg-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/30 active:scale-[0.98]"
+                        >
+                            <Share2 className="w-5 h-5" /> Gerar Imagem
+                        </button>
+                    </div>
+
                     {/* Inputs Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <CustomSlider 
-                            label="Simetria (LSI)" 
-                            value={metrics.limbSymmetry} 
-                            min={0} max={100} unit="%" 
-                            onChange={(v: number) => setMetrics({...metrics, limbSymmetry: v})} 
-                            color="bg-indigo-500"
-                        />
-                        <CustomSlider 
-                            label="Hop Test" 
-                            value={metrics.hopTest} 
-                            min={0} max={100} unit="%" 
-                            onChange={(v: number) => setMetrics({...metrics, hopTest: v})} 
-                            color="bg-violet-500"
-                        />
-                        <CustomSlider 
-                            label="Psicológico (ACL-RSI)" 
-                            value={metrics.psychologicalReadiness} 
-                            min={0} max={100} 
-                            onChange={(v: number) => setMetrics({...metrics, psychologicalReadiness: v})} 
-                            color="bg-blue-500"
-                        />
+                        <CustomSlider label="Simetria (LSI)" value={metrics.limbSymmetry} min={0} max={100} unit="%" onChange={(v: number) => setMetrics({...metrics, limbSymmetry: v})} color="bg-indigo-500" />
+                        <CustomSlider label="Hop Test" value={metrics.hopTest} min={0} max={100} unit="%" onChange={(v: number) => setMetrics({...metrics, hopTest: v})} color="bg-violet-500" />
+                        <CustomSlider label="Psicológico" value={metrics.psychologicalReadiness} min={0} max={100} onChange={(v: number) => setMetrics({...metrics, psychologicalReadiness: v})} color="bg-blue-500" />
                         
-                        {/* Pain Score */}
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
                             <div className="flex justify-between items-center mb-3">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Escala de Dor (EVA)</label>
@@ -361,57 +356,28 @@ const ReturnToSportCalculator: React.FC = () => {
                             </div>
                             <div className="flex gap-1">
                                 {[0,1,2,3,4,5,6,7,8,9,10].map(v => (
-                                    <button 
-                                        key={v} 
-                                        onClick={() => setMetrics({...metrics, painScore: v})} 
-                                        className={`flex-1 h-8 rounded-lg text-[10px] font-bold transition-all ${metrics.painScore === v ? 'bg-slate-900 text-white scale-110 shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-200'}`}
-                                    >
-                                        {v}
-                                    </button>
+                                    <button key={v} onClick={() => setMetrics({...metrics, painScore: v})} className={`flex-1 h-8 rounded-lg text-[10px] font-bold transition-all ${metrics.painScore === v ? 'bg-slate-900 text-white scale-110 shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-200'}`}>{v}</button>
                                 ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* ROM INPUTS - NEW SOFT STYLE */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                             <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-widest ml-1">Flexão</label>
                             <div className="relative">
                                 <Ruler className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                <input 
-                                    type="number" 
-                                    value={metrics.romFlexion}
-                                    onChange={(e) => setMetrics({...metrics, romFlexion: parseInt(e.target.value)})}
-                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-lg text-slate-900 placeholder-slate-300"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">Graus</span>
+                                <input type="number" value={metrics.romFlexion} onChange={(e) => setMetrics({...metrics, romFlexion: parseInt(e.target.value)})} className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-lg text-slate-900" />
                             </div>
                         </div>
-                        
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                             <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-widest ml-1">Extensão</label>
                             <div className="relative">
                                 <Ruler className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                <input 
-                                    type="number" 
-                                    value={metrics.romExtension}
-                                    onChange={(e) => setMetrics({...metrics, romExtension: parseInt(e.target.value)})}
-                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-lg text-slate-900 placeholder-slate-300"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">Graus</span>
+                                <input type="number" value={metrics.romExtension} onChange={(e) => setMetrics({...metrics, romExtension: parseInt(e.target.value)})} className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-lg text-slate-900" />
                             </div>
                         </div>
                     </div>
-                    
-                    <button 
-                        onClick={handleSave}
-                        className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]
-                        ${saveStatus === 'saved' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-slate-900 text-white shadow-slate-900/30 hover:bg-slate-800'}`}
-                    >
-                        {saveStatus === 'saved' ? <CheckCircle className="w-5 h-5" /> : <Save className="w-5 h-5" />}
-                        {saveStatus === 'saved' ? 'Salvo no Histórico!' : 'Salvar Resultado'}
-                    </button>
                 </div>
             )}
         </div>

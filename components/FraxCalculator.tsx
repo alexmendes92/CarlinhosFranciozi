@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
-import { Bone, Info, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { Bone, Info, AlertTriangle, CheckCircle2, RotateCcw, Share2, Flame } from 'lucide-react';
 
 const FraxCalculator: React.FC = () => {
   const [result, setResult] = useState<'low' | 'medium' | 'high' | null>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
   
   // Inputs
   const [age, setAge] = useState<string>('');
@@ -43,6 +45,29 @@ const FraxCalculator: React.FC = () => {
       }
   };
 
+  const handleShareImage = async () => {
+      if (captureRef.current) {
+          try {
+              const canvas = await html2canvas(captureRef.current, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+              canvas.toBlob(async (blob) => {
+                  if (blob) {
+                      const file = new File([blob], 'resultado_frax.png', { type: 'image/png' });
+                      if (navigator.share) {
+                          try {
+                              await navigator.share({ files: [file], title: 'Resultado FRAX', text: 'Avaliação de Risco' });
+                          } catch (err) { console.log(err); }
+                      } else {
+                          const link = document.createElement('a');
+                          link.download = 'frax.png';
+                          link.href = canvas.toDataURL();
+                          link.click();
+                      }
+                  }
+              });
+          } catch (e) { alert("Erro ao criar imagem."); }
+      }
+  };
+
   const Toggle = ({ label, value, onChange }: any) => (
       <div 
         onClick={() => onChange(!value)}
@@ -62,40 +87,58 @@ const FraxCalculator: React.FC = () => {
             
             {result ? (
                 <div className="flex flex-col items-center pt-4 animate-scaleIn max-w-lg mx-auto">
-                    <div className={`w-full p-8 rounded-3xl border mb-6 text-center shadow-lg ${getResultData().color}`}>
-                        <Bone className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                        <h2 className="text-3xl font-black mb-2 tracking-tight">{getResultData().label}</h2>
-                        <p className="font-bold text-sm opacity-90 leading-relaxed">{getResultData().msg}</p>
-                    </div>
                     
-                    <div className="w-full bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mb-6">
-                        <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <Info className="w-5 h-5 text-slate-400" /> Recomendações
-                        </h3>
-                        <ul className="space-y-4 text-sm text-slate-600 font-medium">
-                            <li className="flex gap-3 items-start bg-slate-50 p-3 rounded-xl">
-                                <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" /> 
-                                <span>Suplementação de Cálcio e Vitamina D.</span>
-                            </li>
-                            <li className="flex gap-3 items-start bg-slate-50 p-3 rounded-xl">
-                                <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" /> 
-                                <span>Exercícios de fortalecimento e equilíbrio.</span>
-                            </li>
-                            {result === 'high' && (
-                                <li className="flex gap-3 items-start bg-red-50 p-3 rounded-xl text-red-700">
-                                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" /> 
-                                    <span>Avaliar Bisfosfonatos ou Denosumabe.</span>
+                    {/* Capture Card */}
+                    <div ref={captureRef} className="w-full bg-white p-6 rounded-[2rem] border border-slate-200 shadow-xl mb-6 relative overflow-hidden">
+                        {/* Branding */}
+                        <div className="flex items-center gap-2 mb-6 pb-3 border-b border-slate-100 justify-center">
+                            <Flame className="w-4 h-4 text-slate-900" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Dr. Carlos Franciozi</span>
+                        </div>
+
+                        <div className={`w-full p-8 rounded-3xl border mb-6 text-center ${getResultData().color}`}>
+                            <Bone className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                            <h2 className="text-3xl font-black mb-2 tracking-tight">{getResultData().label}</h2>
+                            <p className="font-bold text-sm opacity-90 leading-relaxed">{getResultData().msg}</p>
+                        </div>
+                        
+                        <div className="w-full bg-slate-50 p-6 rounded-3xl border border-slate-200 shadow-sm">
+                            <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                <Info className="w-5 h-5 text-slate-400" /> Recomendações
+                            </h3>
+                            <ul className="space-y-4 text-sm text-slate-600 font-medium">
+                                <li className="flex gap-3 items-start">
+                                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" /> 
+                                    <span>Suplementação de Cálcio e Vitamina D.</span>
                                 </li>
-                            )}
-                        </ul>
+                                <li className="flex gap-3 items-start">
+                                    <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" /> 
+                                    <span>Exercícios de fortalecimento e equilíbrio.</span>
+                                </li>
+                                {result === 'high' && (
+                                    <li className="flex gap-3 items-start text-red-700">
+                                        <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" /> 
+                                        <span>Avaliar Bisfosfonatos ou Denosumabe.</span>
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
                     </div>
 
-                    <button 
-                        onClick={() => setResult(null)}
-                        className="flex items-center gap-2 text-slate-500 font-bold hover:text-slate-800 transition-colors bg-white px-6 py-3 rounded-full border border-slate-200 shadow-sm active:scale-95"
-                    >
-                        <RotateCcw className="w-4 h-4" /> Novo Cálculo
-                    </button>
+                    <div className="flex gap-3 w-full">
+                        <button 
+                            onClick={handleShareImage}
+                            className="flex-1 flex items-center justify-center gap-2 text-white bg-slate-900 font-bold hover:bg-slate-800 transition-colors px-6 py-3 rounded-full shadow-lg active:scale-95"
+                        >
+                            <Share2 className="w-4 h-4" /> Gerar Imagem
+                        </button>
+                        <button 
+                            onClick={() => setResult(null)}
+                            className="flex items-center justify-center gap-2 text-slate-500 font-bold hover:text-slate-800 transition-colors bg-white px-6 py-3 rounded-full border border-slate-200 shadow-sm active:scale-95"
+                        >
+                            <RotateCcw className="w-4 h-4" /> Novo
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="space-y-6 max-w-lg mx-auto">

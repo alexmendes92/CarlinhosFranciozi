@@ -5,7 +5,7 @@ import {
   Stethoscope, FileText, Activity, Bone, Briefcase, 
   Newspaper, PieChart, QrCode, Globe, Cuboid, GraduationCap,
   CalendarCheck2, PlayCircle, FlaskConical, ChevronRight,
-  Calendar, AlertCircle, MessageCircle, Sparkles
+  Calendar, AlertCircle, MessageCircle, Sparkles, Users
 } from 'lucide-react';
 import { getUpcomingHolidays, Holiday } from '../services/externalApis';
 
@@ -176,10 +176,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectTool, onQuickAction }) =>
                 {/* Secondary - Blog/Article */}
                 <button 
                     onClick={() => onSelectTool('seo')}
-                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-blue-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between h-48 group relative overflow-hidden"
+                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-blue-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col text-left group relative overflow-hidden"
                 >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-50 to-transparent rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform mb-3">
                         <BookOpen className="w-5 h-5" />
                     </div>
                     <div className="relative z-10">
@@ -191,10 +191,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectTool, onQuickAction }) =>
                 {/* Secondary - Video */}
                 <button 
                     onClick={() => onSelectTool('video')}
-                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-red-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between h-48 group relative overflow-hidden"
+                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-red-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col text-left group relative overflow-hidden"
                 >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-red-50 to-transparent rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 shadow-lg shadow-red-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 shadow-lg shadow-red-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform mb-3">
                         <Video className="w-5 h-5" />
                     </div>
                     <div className="relative z-10">
@@ -203,13 +203,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectTool, onQuickAction }) =>
                     </div>
                 </button>
 
-                {/* Tertiary - Publicações (Moved from List) */}
+                {/* Tertiary - Publicações */}
                 <button 
                     onClick={() => onSelectTool('publications')}
-                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between h-48 group relative overflow-hidden"
+                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col text-left group relative overflow-hidden"
                 >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-50 to-transparent rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-lg shadow-indigo-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-lg shadow-indigo-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform mb-3">
                         <GraduationCap className="w-5 h-5" />
                     </div>
                     <div className="relative z-10">
@@ -218,13 +218,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectTool, onQuickAction }) =>
                     </div>
                 </button>
 
-                {/* Tertiary - Meu Site (Moved from List) */}
+                {/* Tertiary - Meu Site */}
                 <button 
                     onClick={() => onSelectTool('site')}
-                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-blue-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col justify-between h-48 group relative overflow-hidden"
+                    className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-blue-100 hover:shadow-md transition-all active:scale-[0.98] flex flex-col text-left group relative overflow-hidden"
                 >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-50 to-transparent rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg shadow-blue-500/30 flex items-center justify-center text-white relative z-10 group-hover:scale-110 transition-transform mb-3">
                         <Globe className="w-5 h-5" />
                     </div>
                     <div className="relative z-10">
@@ -308,7 +308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectTool, onQuickAction }) =>
             <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50 lg:grid lg:grid-cols-2 lg:gap-0 lg:divide-y-0 lg:divide-x">
                 
                 {[
-                    { id: 'patient_content', label: 'Portal do Paciente', icon: MessageCircle, gradient: 'from-green-400 to-green-600', shadow: 'shadow-green-500/30' },
+                    { id: 'patients', label: 'Meus Pacientes', icon: Users, gradient: 'from-green-400 to-green-600', shadow: 'shadow-green-500/30' },
                     { id: 'marketing_roi', label: 'ROI Marketing', icon: PieChart, gradient: 'from-emerald-400 to-emerald-600', shadow: 'shadow-emerald-500/30' },
                     { id: 'card', label: 'Cartão Digital', icon: QrCode, gradient: 'from-slate-700 to-slate-900', shadow: 'shadow-slate-500/30' },
                     { id: 'news', label: 'Notícias', icon: Newspaper, gradient: 'from-pink-400 to-pink-600', shadow: 'shadow-pink-500/30' }

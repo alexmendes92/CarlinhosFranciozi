@@ -14,7 +14,8 @@ import {
   Globe,
   QrCode,
   MessageCircle,
-  Calculator
+  Calculator,
+  Users
 } from 'lucide-react';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -41,13 +42,13 @@ import PatientJourney from './components/PatientJourney';
 import VideoWizard from './components/VideoWizard';
 import ClinicalSuite from './components/ClinicalSuite';
 import MarketingROI from './components/MarketingROI';
-import PatientContentWizard from './components/PatientContentWizard';
+import PatientManager from './components/PatientManager';
 import CalculatorsMenu from './components/CalculatorsMenu';
 
 import { generatePostImage, generatePostText, generateSEOArticle, generateInfographicContent, generateConversionContent, updateUserProfile } from './services/geminiService';
 import { GeneratedResult, PostState, GeneratedArticle, ArticleState, InfographicState, InfographicResult, ConversionState, ConversionResult, PostFormat, PostCategory, Tone, PubMedArticle, UserProfile } from './types';
 
-type ViewMode = 'dashboard' | 'post' | 'seo' | 'materials' | 'infographic' | 'conversion' | 'history' | 'site' | 'trends' | 'calculator' | 'publications' | 'anatomy' | 'card' | 'scores' | 'frax' | 'prescription' | 'news' | 'journey' | 'video' | 'clinical' | 'marketing_roi' | 'patient_content' | 'calculators' | 'weight_sim' | 'visco_manager';
+type ViewMode = 'dashboard' | 'post' | 'seo' | 'materials' | 'infographic' | 'conversion' | 'history' | 'site' | 'trends' | 'calculator' | 'publications' | 'anatomy' | 'card' | 'scores' | 'frax' | 'prescription' | 'news' | 'journey' | 'video' | 'clinical' | 'marketing_roi' | 'patients' | 'calculators' | 'weight' | 'visco';
 
 function App() {
   // --- PERSISTENT STATE ---
@@ -194,7 +195,7 @@ function App() {
       case 'clinical': return { title: 'Clínica', subtitle: 'Ferramentas de Consultório' };
       case 'calculators': return { title: 'Calculadoras', subtitle: 'Scores e Métricas' };
       case 'publications': return { title: 'Artigos', subtitle: 'Minhas Publicações' };
-      case 'patient_content': return { title: 'Portal do Paciente', subtitle: 'Comunicação Direta' };
+      case 'patients': return { title: 'Pacientes', subtitle: 'Gestão de Pacientes' };
       default: return { title: 'MediSocial', subtitle: 'Dr. Carlos Franciozi' };
     }
   };
@@ -202,13 +203,13 @@ function App() {
   const { title, subtitle } = getPageInfo();
   const hasResult = postResult || articleResult || infographicResult || conversionResult;
   const isGenerating = postLoading || articleLoading || infographicLoading || conversionLoading;
-  const isFullPageTool = ['trends', 'calculator', 'materials', 'site', 'publications', 'anatomy', 'card', 'scores', 'frax', 'prescription', 'news', 'journey', 'video', 'clinical', 'marketing_roi', 'patient_content', 'calculators', 'weight_sim', 'visco_manager'].includes(viewMode);
+  const isFullPageTool = ['trends', 'calculator', 'materials', 'site', 'publications', 'anatomy', 'card', 'scores', 'frax', 'prescription', 'news', 'journey', 'video', 'clinical', 'marketing_roi', 'patients', 'calculators', 'weight', 'visco'].includes(viewMode);
   const showPreview = hasResult || isGenerating;
 
   // --- MENU CONFIGURATION ---
   const menuItems = [
     { id: 'dashboard', label: 'Home', icon: LayoutGrid },
-    { id: 'patient_content', label: 'Portal', icon: MessageCircle }, // New Portal Item
+    { id: 'patients', label: 'Pacientes', icon: Users }, // Renamed and Changed Icon
     { id: 'post', label: 'Criar', icon: PlusSquare },
     { id: 'video', label: 'Vídeo', icon: Video },
     { id: 'seo', label: 'Blog', icon: BookOpen },
@@ -367,9 +368,9 @@ function App() {
                                 {viewMode === 'news' && <MedicalNewsFeed />}
                                 {viewMode === 'journey' && <PatientJourney />}
                                 {viewMode === 'video' && <VideoWizard />}
-                                {(viewMode === 'clinical' || viewMode === 'weight_sim' || viewMode === 'visco_manager') && <ClinicalSuite />}
+                                {(viewMode === 'clinical' || viewMode === 'weight' || viewMode === 'visco') && <ClinicalSuite />}
                                 {viewMode === 'marketing_roi' && <MarketingROI />}
-                                {viewMode === 'patient_content' && <PatientContentWizard />}
+                                {viewMode === 'patients' && <PatientManager />}
                                 {viewMode === 'calculators' && <CalculatorsMenu onSelectTool={(t) => setViewMode(t as ViewMode)} />}
                             </div>
                        </div>
@@ -403,7 +404,7 @@ function App() {
           </main>
 
           {/* FLOATING GLASS DOCK (Mobile Only) - Updated Layout for better spacing */}
-          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] rounded-[2.5rem] flex items-center p-2 z-50 gap-2 max-w-[95%] w-full justify-evenly transition-all duration-300 lg:hidden px-4">
+          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] rounded-[2.5rem] flex items-center p-2 z-50 gap-2 max-w-[95%] w-full justify-between transition-all duration-300 lg:hidden px-6">
               
               <button 
                 onClick={() => setViewMode('dashboard')} 
@@ -414,11 +415,11 @@ function App() {
               </button>
 
               <button 
-                onClick={() => setViewMode('patient_content')} 
-                className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${viewMode === 'patient_content' ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                onClick={() => setViewMode('patients')} 
+                className={`flex-1 h-14 rounded-[2rem] flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden ${viewMode === 'patients' ? 'bg-green-600 text-white shadow-lg shadow-green-500/30' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
               >
-                  <MessageCircle className={`w-5 h-5 mb-0.5 ${viewMode === 'patient_content' ? 'animate-bounceClick' : ''}`} />
-                  {viewMode === 'patient_content' && <span className="text-[8px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Portal</span>}
+                  <Users className={`w-5 h-5 mb-0.5 ${viewMode === 'patients' ? 'animate-bounceClick' : ''}`} />
+                  {viewMode === 'patients' && <span className="text-[8px] font-bold absolute bottom-2 opacity-80 animate-fadeIn">Pacientes</span>}
               </button>
               
               <button 
